@@ -17,6 +17,7 @@ from models.user import User
 async def lifespan(app: FastAPI):
     app.state.db = create_engine(os.getenv("DATABASE_URL"))
     app.state.cache = base.Client((os.getenv("MEMCACHE_HOST"), int(os.getenv("MEMCACHE_PORT"))))
+    app.state.session_count = 0
     yield
     app.state.db.dispose()
 

@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
-import { AppBar, Container, Toolbar, useTheme } from "@mui/material";
+import { AppBar, Container, Toolbar, useTheme, Box } from "@mui/material";
 import { styled } from '@mui/material/styles';
+import Cookies from 'js-cookie';
+import { useNavigate } from "react-router-dom";
 
 // Styled Link component that looks like a Material-UI Button
 const StyledLink = styled(Link)(({ theme }) => ({
@@ -16,6 +18,20 @@ const StyledLink = styled(Link)(({ theme }) => ({
 
 function Navbar() {
   const theme = useTheme();
+  
+  const navigate = useNavigate();
+
+  const handleLogoout = () => {
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    }).then(response => {
+      if (response.ok) {
+        Cookies.remove("session_id");
+        navigate('/');
+      }
+    })
+  }
 
   return (
     <AppBar color="primary">
@@ -23,6 +39,13 @@ function Navbar() {
         <Toolbar disableGutters>
           <StyledLink to="/" theme={theme}>Home</StyledLink>
           <StyledLink to="/about" theme={theme}>About</StyledLink>
+          {
+            Cookies.get("session_id") && (
+              <Box sx={{ marginLeft: 'auto' }}> {/* Align "Log Out" link to the right 📏➡️ */}
+              <StyledLink onClick={handleLogoout} theme={theme}>Log Out</StyledLink> {/* Log Out link 🔐🚪 */}
+            </Box>
+            )
+          }
         </Toolbar>
       </Container>
     </AppBar>
