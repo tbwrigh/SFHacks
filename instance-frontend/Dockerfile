@@ -6,8 +6,10 @@ COPY . .
 
 RUN npm install
 
-RUN npm run build
+ARG VITE_BACKEND_URL
 
-EXPOSE 8080
+RUN echo "VITE_BACKEND_URL=${VITE_BACKEND_URL}" > .env
+
+RUN npm run build
 
 CMD ["npm", "run", "preview"]

@@ -12,6 +12,4 @@ RUN echo "VITE_BACKEND_URL=${VITE_BACKEND_URL}" > .env
 
 RUN npm run build
 
-EXPOSE 8080
-
 CMD ["npm", "run", "preview"]

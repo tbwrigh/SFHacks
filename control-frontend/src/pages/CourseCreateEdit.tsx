@@ -2,10 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Stepper, Step, StepLabel, Button, TextField, Box, Typography } from '@mui/material';
 // import { ColorPicker } from '@mui/x-date-pickers/ColorPicker'; // Adjust based on the color picker you choose
 import { useLocation, useNavigate } from 'react-router-dom';
+import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
+import { TreeItem } from '@mui/x-tree-view/TreeItem';
 
-import { CourseData } from '../types';
+import SpeedDialTooltipOpen from '../components/add_button';
+
+import { CourseData, Material, Module } from '../types';
 import ColorPicker from '../components/color_picker';
 
+import { v4 as uuidv4 } from 'uuid';
 
 const steps = ['Course Details', 'Additional Information', 'Assets'];
 
@@ -20,6 +25,9 @@ export default function CourseCreateEditForm() {
     primaryColor: '#ffffff',
     secondaryColor: '#000000'
   });
+  const [modules, setModules] = useState<Module[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
+
   const location = useLocation();
   const subdomain = location.pathname.split('/').pop();
   const navigate = useNavigate();
@@ -47,6 +55,25 @@ const handleIconChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     }
   };
 
+  const fetchModules = () => {
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/course/${subdomain}/module`)
+      .then((response) => response.json())
+      .then((data) => setModules(data))
+      .catch((error) => console.error('Error:', error));
+  }
+
+  const fetchMaterials = () => {
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/course/${subdomain}/material`)
+      .then((response) => response.json())
+      .then((data) => setMaterials(data))
+      .catch((error) => console.error('Error:', error));
+  }
+
+  const updates = () => {
+    fetchModules();
+    fetchMaterials();
+  }
+
   useEffect(() => {
     if (subdomain) {
       fetch(`${import.meta.env.VITE_BACKEND_URL}/course/${subdomain}`)
@@ -61,6 +88,9 @@ const handleIconChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     }
   }, [])
 
+  useEffect(() => {
+    updates();
+  }, [])
   
 
 const StepContent = ({ stepIndex }: { stepIndex: number }) => {
@@ -99,8 +129,21 @@ const StepContent = ({ stepIndex }: { stepIndex: number }) => {
         );
       case 1:
         return (
-            <Box p={3}>            
-                <Typography>Additional information can be added here.</Typography>
+            <Box p={3} sx={{ color: '#000' }}>            
+              <SimpleTreeView>
+                {
+                  modules.sort((a, b) => a.position - b.position).map((module) => (
+                    <TreeItem itemId={uuidv4()} label={module.name} key={uuidv4()} sx={{ color: '#000' }}>
+                      {
+                        materials.filter((material) => material.module_id === module.id).sort((a,b) => a.position - b.position).map((material) => (
+                          <TreeItem itemId={uuidv4()} label={material.name} key={uuidv4()} sx={{ color: '#000' }} />
+                        ))
+                      }
+                    </TreeItem>
+                  ))
+                }
+              </SimpleTreeView>
+              <SpeedDialTooltipOpen onModalClose={updates} subdomain={courseData.subdomain} />
             </Box>
         )
       case 2:
@@ -139,7 +182,7 @@ const StepContent = ({ stepIndex }: { stepIndex: number }) => {
   };
 
   return (
-    <Box sx={{ width: '80vw' }} p={5} bgcolor={'white'} borderRadius={2}>
+    <Box sx={{ width: '80vw' }} p={5} bgcolor={'white'} borderRadius={2} alignContent={'center'}>
       <Stepper activeStep={activeStep} alternativeLabel>
         {steps.map((label) => (
           <Step key={label}>

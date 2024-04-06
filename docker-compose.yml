@@ -59,6 +59,8 @@ services:
       - "8000:8000"
     env_file:
       - backend.env
+    volumes:
+      - ./backend/gcs.json:/app/gcs.json
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
       interval: 30s
@@ -77,7 +79,10 @@ services:
         condition: service_healthy
   instance_frontend:
     container_name: sfhacks_instance_frontend
-    build: ./instance-frontend
+    build: 
+      context: ./instance-frontend
+      args:
+        - VITE_BACKEND_URL=http://localhost:8000
     restart: always
     depends_on:
       backend:
@@ -85,3 +90,4 @@ services:
     
 volumes:
   sfhacks-db-volume:
+    

@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, Body, HTTPException, Depends, status, File, UploadFile
+from fastapi import FastAPI, Request, Body, HTTPException, Depends, status, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from google.cloud import storage
@@ -160,7 +160,7 @@ def get_modules(subdomain: str):
         return modules
 
 @app.post("/course/{subdomain}/module")
-def create_module(subdomain: str, name: str, description: str, position: int, user: User = Depends(get_authenticated_user_from_session_id)):
+def create_module(subdomain: str, name: str = Body(...), description: str = Body(...), position: int = Body(...), user: User = Depends(get_authenticated_user_from_session_id)):
     with Session(app.state.db) as session:
         course_query = select(Course).where(Course.subdomain == subdomain)
         course = session.execute(course_query).scalar()
@@ -197,7 +197,7 @@ def delete_module(subdomain: str, module_id: int, user: User = Depends(get_authe
         return {"message": "Module deleted successfully"}
     
 @app.post("/course/{subdomain}/module/{module_id}/material")
-def create_material(subdomain: str, module_id: int, name: str, position: int, file: UploadFile = File(...), user: User = Depends(get_authenticated_user_from_session_id)):
+def create_material(subdomain: str, module_id: int, name: str = Form(...), position: int = Form(...), file: UploadFile = File(...), user: User = Depends(get_authenticated_user_from_session_id)):
     with Session(app.state.db) as session:
         course_query = select(Course).where(Course.subdomain == subdomain)
         course = session.execute(course_query).scalar()
@@ -269,4 +269,3 @@ def delete_material(subdomain: str, material_id: int, user: User = Depends(get_a
         session.delete(material)
         session.commit()
         return {"message": "Material deleted successfully"}
-

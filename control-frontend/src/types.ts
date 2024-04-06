@@ -15,3 +15,18 @@ export interface CourseData {
     primaryColor: string;
     secondaryColor: string;
   }
+
+export interface Module {
+    id: number;
+    name: string;
+    description: string;
+    position: number;
+}
+
+export interface Material {
+    id: number;
+    name: string;
+    description: string;
+    position: number;
+    module_id: number;
+}
