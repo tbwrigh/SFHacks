@@ -1,0 +1,53 @@
+version: 3.9
+
+services:
+  database:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+  dispatcher:
+    build: ./dispatcher
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      database:
+        condition: service_healthy
+  backend:
+    build: ./backend
+    restart: always
+    depends_on:
+      database:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+  control_frontend:
+    build: ./control_frontend
+    restart: always
+    depends_on:
+      backend:
+        condition: service_healthy
+  instace_frontend:
+    build: ./instance_frontend
+    restart: always
+    depends_on:
+      backend:
+        condition: service_healthy
+    
