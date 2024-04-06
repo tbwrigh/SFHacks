@@ -1,22 +1,35 @@
-version: 3.9
+version: '3.9'
 
 services:
   database:
+    container_name: sfhacks_database
     image: postgres
     restart: always
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: password
       POSTGRES_DB: postgres
     ports:
       - "5432:5432"
+    volumes:
+      - sfhacks-db-volume:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 30s
       timeout: 5s
       retries: 10
       start_period: 10s
+  migration:
+    container_name: migration
+    build: ./backend
+    command: alembic upgrade head
+    env_file:
+      - backend.env
+    depends_on:
+      database:
+        condition: service_healthy
   dispatcher:
+    container_name: sfhacks_dispatcher
     build: ./dispatcher
     restart: always
     ports:
@@ -24,14 +37,23 @@ services:
     depends_on:
       database:
         condition: service_healthy
+      migration:
+        condition: service_completed_successfully
+    env_file:
+      - dispatcher.env
   backend:
+    container_name: sfhacks_backend
     build: ./backend
     restart: always
     depends_on:
       database:
         condition: service_healthy
+      migration:
+        condition: service_completed_successfully
     ports:
       - "8000:8000"
+    env_file:
+      - backend.env
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
       interval: 30s
@@ -39,15 +61,19 @@ services:
       retries: 10
       start_period: 10s
   control_frontend:
-    build: ./control_frontend
+    container_name: sfhacks_control_frontend
+    build: ./control-frontend
     restart: always
     depends_on:
       backend:
         condition: service_healthy
-  instace_frontend:
-    build: ./instance_frontend
+  instance_frontend:
+    container_name: sfhacks_instance_frontend
+    build: ./instance-frontend
     restart: always
     depends_on:
       backend:
         condition: service_healthy
     
+volumes:
+  sfhacks-db-volume:
