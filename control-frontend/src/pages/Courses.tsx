@@ -24,7 +24,7 @@ const Courses: React.FC = () => {
       { courses.length === 0 && (<p>No Courses Yet</p>) }
       { courses.length>0 && (<CourseList courses={courses}/>) }
       <br />
-      <NewDialog />
+      <NewDialog onSubmit={fetchCourses} />
     </div>
   );
 };

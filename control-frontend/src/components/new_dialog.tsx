@@ -6,7 +6,11 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import TextField from '@mui/material/TextField';
 
-function NewDialog() {
+interface NewDialogProps {
+    onSubmit: () => void;
+}
+
+function NewDialog(props: NewDialogProps) {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     courseName: '',
@@ -60,6 +64,8 @@ const handleSubmit = () => {
                 subdomainName: '',
             });
         
+            props.onSubmit();
+
             setOpen(false);
         } else {
             console.error('Error creating course');
