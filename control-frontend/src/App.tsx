@@ -9,6 +9,7 @@ import Home from './pages/Home'
 import About from './pages/About'
 import Courses from './pages/Courses'
 import CourseCreateEditForm from './pages/CourseCreateEdit';
+import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         <Route path="/about" element={<About />} />
         <Route path="/courses" element={<Courses />} />
         <Route path="/edit/*" element={<CourseCreateEditForm />} />
+        <Route path="/404" element={<NotFoundPage />} />
       </Routes>
     </Router>
   )

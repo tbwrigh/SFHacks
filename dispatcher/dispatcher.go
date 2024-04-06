@@ -97,7 +97,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 				subdomains[ss] = struct{}{}
 			}
 			if _, okay := subdomains[subdomain]; !okay {
-				http.Error(w, "404 Not Found", http.StatusNotFound)
+				http.Redirect(w, r, "http://"+base_host+"/404", http.StatusTemporaryRedirect)
 				return
 			}
 		}

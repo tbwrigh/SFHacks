@@ -67,10 +67,11 @@ services:
       start_period: 10s
   control_frontend:
     container_name: sfhacks_control_frontend
-    build: ./control-frontend
+    build: 
+      context: ./control-frontend
+      args:
+        - VITE_BACKEND_URL=http://localhost:8000
     restart: always
-    env_file:
-      - control_frontend.env
     depends_on:
       backend:
         condition: service_healthy
