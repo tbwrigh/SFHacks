@@ -22,7 +22,7 @@ def upgrade() -> None:
     op.create_table(
         'subdomains',
         sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('subdomain', sa.String(), nullable=False),
+        sa.Column('subdomain', sa.String(), nullable=False, unique=True),
         sa.PrimaryKeyConstraint('id')
     )
 
