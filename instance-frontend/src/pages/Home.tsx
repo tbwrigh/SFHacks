@@ -1,10 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Container, Typography, Button } from '@mui/material';
 
+import { useNavigate } from 'react-router-dom';
+
 import { Course } from '../types';
 
 function Home() {
   const [courseData, setCourseData] = useState<Course | null>(null);
+
+  const navigate = useNavigate();
+
+  const handleGetStarted = () => {
+    navigate('/modules');
+  };
 
   useEffect(() => {
     const subdomain = window.location.hostname.split('.')[0];
@@ -22,7 +30,7 @@ function Home() {
         {courseData?.description}
       </Typography>
       <br />
-      <Button variant="contained" color="primary">
+      <Button variant="contained" color="primary" onClick={handleGetStarted}>
         Get Started
       </Button>
     </Container>

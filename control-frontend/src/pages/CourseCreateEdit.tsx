@@ -91,7 +91,6 @@ const handleIconChange = (event: React.ChangeEvent<HTMLInputElement>) => {
   useEffect(() => {
     updates();
   }, [])
-  
 
 const StepContent = ({ stepIndex }: { stepIndex: number }) => {
     switch (stepIndex) {

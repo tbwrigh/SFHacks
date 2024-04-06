@@ -5,3 +5,18 @@ export interface Course {
     subdomain: string;
     owner_id: number;
 }
+
+export interface Module {
+    id: number;
+    name: string;
+    description: string;
+    position: number;
+}
+
+export interface Material {
+    id: number;
+    name: string;
+    description: string;
+    position: number;
+    module_id: number;
+}

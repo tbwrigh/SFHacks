@@ -4,6 +4,7 @@ import SpeedDialIcon from '@mui/material/SpeedDialIcon';
 import SpeedDialAction from '@mui/material/SpeedDialAction';
 import AddIcon from '@mui/icons-material/Add';
 import NoteAddIcon from '@mui/icons-material/NoteAdd';
+import { Edit } from '@mui/icons-material';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -14,7 +15,10 @@ import { TextField } from '@mui/material';
 import { Select, MenuItem } from '@mui/material';
 import { v4 as uuidv4 } from 'uuid';
 
-import { Module } from '../types';
+import { Module, Material } from '../types';
+
+import download from 'downloadjs';
+
 // Import other components and icons as before
 
 interface SpeedDialActionProps {
@@ -39,6 +43,10 @@ interface AddMaterialData {
 function SpeedDialTooltipOpen(props: SpeedDialActionProps) {
     const [openModuleDialog, setOpenModuleDialog] = useState(false);
     const [openMaterialDialog, setOpenMaterialDialog] = useState(false);
+    const [openEditDialog, setOpenEditDialog] = useState(false);
+
+    const [editType, setEditType] = useState(''); // ['module', 'material'
+    const [editId, setEditId] = useState(0); // [module_id, material_id
   
     const [addModuleData, setAddModuleData] = useState<AddModuleData>({
         name: '',
@@ -55,11 +63,18 @@ function SpeedDialTooltipOpen(props: SpeedDialActionProps) {
     });
 
     const [modules, setModules] = useState<Module[]>([]); // Add module state
+    const [materials, setMaterials] = useState<Material[]>([]); // Add material state
 
     useEffect(() => {
         fetch(`${import.meta.env.VITE_BACKEND_URL}/course/${props.subdomain}/module`)
             .then((response) => response.json())
             .then((data) => setModules(data))
+    }, [])
+
+    useEffect(() => {
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/course/${props.subdomain}/material`)
+            .then((response) => response.json())
+            .then((data) => setMaterials(data))
     }, [])
 
     const updateAddModuleData = (key: string, value: string | number) => {
@@ -81,12 +96,15 @@ function SpeedDialTooltipOpen(props: SpeedDialActionProps) {
         setOpenModuleDialog(true);
       } else if (dialogType === 'material') {
         setOpenMaterialDialog(true);
+      } else if (dialogType === 'edit') {
+        setOpenEditDialog(true);
       }
     };
   
     const handleClose = () => {
         setOpenModuleDialog(false);
         setOpenMaterialDialog(false);
+        setOpenEditDialog(false);
     };
 
     const handleAddModule = () => {
@@ -122,10 +140,55 @@ function SpeedDialTooltipOpen(props: SpeedDialActionProps) {
         })
         .catch((error) => console.error('Error:', error)); 
     }
+
+    const handleDelete = () => {
+        if (editType === 'module') {
+            fetch(`${import.meta.env.VITE_BACKEND_URL}/course/${props.subdomain}/module/${editId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            })
+            .then(() => {
+                props.onModalClose();
+                setOpenEditDialog(false);
+            })
+            .catch((error) => console.error('Error:', error));
+        } else {
+            fetch(`${import.meta.env.VITE_BACKEND_URL}/course/${props.subdomain}/material/${editId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            })
+            .then(() => {
+                props.onModalClose();
+                setOpenEditDialog(false);
+            })
+            .catch((error) => console.error('Error:', error));
+        }
+    }
+
+    const handleDownload = () => {
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/course/${props.subdomain}/material/${editId}`)
+        .then( res => res.blob() )
+        .then( blob => {
+            fetch(`${import.meta.env.VITE_BACKEND_URL}/course/${props.subdomain}/material/`)
+            .then(response => response.json())
+            .then(json => {
+                let filename = "";
+                for (let i = 0; i < json.length; i++) {
+                    if (json[i].id === editId) {
+                        filename = json[i].filename;
+                        break;
+                    }
+                }
+                download(blob, filename);
+            })
+        })
+        .catch((error) => console.error('Error:', error));
+    }
   
     const actions = [
       { icon: <NoteAddIcon />, name: 'Add Module', onClick: () => handleClickOpen('module') },
       { icon: <AddIcon />, name: 'Add Material', onClick: () => handleClickOpen('material') },
+      { icon: <Edit />, name: 'Edit', onClick: () => handleClickOpen('edit')},
     ];
   
     return (
@@ -225,7 +288,6 @@ function SpeedDialTooltipOpen(props: SpeedDialActionProps) {
                 />
                 <Select
                     id="module-select"
-                    label="Module"
                     fullWidth
                     onChange={(e) => updateAddMaterialData('module_id', parseInt((e.target.value as string)))}
                 >
@@ -235,15 +297,16 @@ function SpeedDialTooltipOpen(props: SpeedDialActionProps) {
                         ))
                     }
                 </Select>
+                <br />
                 {/* Show file name when uploaded */}
                 <label htmlFor="icon-upload">
                     <input
-                    accept="image/*"
                     id="icon-upload"
                     type="file"
                     style={{ display: 'none' }}
                     onChange={(e) => updateAddMaterialData('file', e.target.files![0])}
                     />
+                    <br />
                     <Button variant="contained" component="span">
                         Upload File
                     </Button>
@@ -258,6 +321,48 @@ function SpeedDialTooltipOpen(props: SpeedDialActionProps) {
             <Button onClick={handleClose}>Cancel</Button>
             <Button onClick={handleAddMaterial}>Add</Button>
           </DialogActions>
+        </Dialog>
+
+
+        <Dialog open={openEditDialog} onClose={handleClose}>
+            <DialogTitle>{"Edit Dialog"}</DialogTitle>
+            <DialogContent>
+                <DialogContentText>
+                    Here you can delete or download materials and delete modules.
+                </DialogContentText>
+                <Select id="module-select"
+                        fullWidth
+                        onChange={(e) => setEditType(e.target.value as string)}>
+                    <MenuItem value="module" selected={editType == "module"}>Module</MenuItem>
+                    <MenuItem value="material" selected={editType=="material"}>Material</MenuItem>
+                </Select>
+                <Select fullWidth onChange={(e) => setEditId(parseInt(e.target.value as string))}>
+                    {
+                        editType === 'module' ? (
+                            modules.map((module) => (
+                                <MenuItem value={module.id} key={uuidv4()}>{module.name}</MenuItem>
+                            ))
+                        ) : (
+                            materials.map((material) => (
+                                <MenuItem value={material.id} key={uuidv4()}>{material.name}</MenuItem>
+                            ))
+                        )
+                    }
+                </Select>
+            </DialogContent>
+            <DialogActions>
+                {
+                    (editType == "module" || editType == "material") && (
+                        <Button onClick={handleDelete}>Delete</Button>
+                    )
+                }
+                {
+                    editType == "material" && (
+                        <Button onClick={handleDownload}>Download</Button>
+                    )
+                }
+                <Button onClick={handleClose}>Done</Button>
+            </DialogActions>
         </Dialog>
       </>
     );

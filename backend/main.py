@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Body, HTTPException, Depends, status, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from google.cloud import storage
 from pydantic import BaseModel
@@ -10,6 +11,7 @@ from sqlalchemy.orm import Session
 
 import os
 import random
+import io
 
 from models.course import Course
 from models.user import User
@@ -248,7 +250,12 @@ def get_material(subdomain: str, material_id: int):
         
         bucket = app.state.gcs_client.get_bucket(subdomain)
         blob = bucket.blob(material.filename)
-        return blob.download_as_string()
+
+        file_contents = io.BytesIO()
+        blob.download_to_file(file_contents)
+        file_contents.seek(0)
+
+        return StreamingResponse(file_contents, media_type="application/octet-stream")
 
 @app.delete("/course/{subdomain}/material/{material_id}")
 def delete_material(subdomain: str, material_id: int, user: User = Depends(get_authenticated_user_from_session_id)):
