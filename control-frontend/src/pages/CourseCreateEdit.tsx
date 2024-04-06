@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
 import { Stepper, Step, StepLabel, Button, TextField, Box, Typography } from '@mui/material';
-import { styled } from '@mui/material/styles';
 // import { ColorPicker } from '@mui/x-date-pickers/ColorPicker'; // Adjust based on the color picker you choose
 
 import { CourseData } from '../types';
+import ColorPicker from '../components/color_picker';
 
-const Input = styled('input')({
-  display: 'none',
-});
 
 const steps = ['Course Details', 'Additional Information', 'Assets'];
 
@@ -18,6 +15,7 @@ export default function CourseCreateEditForm() {
     description: '',
     subdomain: '',
     icon: undefined,
+    iconPreview: undefined,
     primaryColor: '#ffffff',
     secondaryColor: '#000000'
   });
@@ -34,11 +32,23 @@ const handleFieldChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setCourseData({ ...courseData, [event.target.name]: event.target.value });
 };
 
+const handleIconChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      const file = event.target.files[0];
+      setCourseData({ 
+        ...courseData, 
+        icon: file, 
+        iconPreview: URL.createObjectURL(file) // Generate and store the preview URL
+      });
+    }
+  };
+  
+
 const StepContent = ({ stepIndex }: { stepIndex: number }) => {
     switch (stepIndex) {
       case 0:
         return (
-          <Box>
+          <Box p={3}>
             <TextField
               fullWidth
               label="Title"
@@ -66,22 +76,39 @@ const StepContent = ({ stepIndex }: { stepIndex: number }) => {
           </Box>
         );
       case 1:
-        return <Typography>Additional information can be added here.</Typography>;
+        return (
+            <Box p={3}>            
+                <Typography>Additional information can be added here.</Typography>
+            </Box>
+        )
       case 2:
         return (
-        <Box>
+        <Box p={3}>
             <label htmlFor="icon-upload">
-                <Input
-                    accept="image/*"
-                    id="icon-upload"
-                    type="file"
-                    onChange={(event) => 
-                        setCourseData({ ...courseData, icon: event.target.files ? event.target.files[0] : undefined })}
+                <input
+                accept="image/*"
+                id="icon-upload"
+                type="file"
+                style={{ display: 'none' }}
+                onChange={handleIconChange}
                 />
                 <Button variant="contained" component="span">
-                    Upload Icon
+                Upload Icon
                 </Button>
             </label>
+            {courseData.iconPreview && (
+                <Box sx={{ margin: '10px 0', textAlign: 'center' }}>
+                <img src={courseData.iconPreview} alt="Icon Preview" style={{ maxHeight: '100px' }} />
+                </Box>
+            )}
+            <ColorPicker
+                label="Primary Color"
+                color={courseData.primaryColor}
+                onChange={(color) => setCourseData({ ...courseData, primaryColor: color })} />
+            <ColorPicker
+                label="Secondary Color"
+                color={courseData.secondaryColor}
+                onChange={(color) => setCourseData({ ...courseData, secondaryColor: color })} />
             {/* Implement ColorPicker for primaryColor and secondaryColor */}
         </Box>
         );
