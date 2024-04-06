@@ -18,7 +18,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
         <Route path="/courses" element={<Courses />} />
-        <Route path="/new" element={<CourseCreateEditForm />} />
+        <Route path="/edit/*" element={<CourseCreateEditForm />} />
       </Routes>
     </Router>
   )

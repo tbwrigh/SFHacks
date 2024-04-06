@@ -1,49 +1,32 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import CourseList from '../components/course_list';
 import { Course } from '../types';
+import NewDialog from '../components/new_dialog';
 
-const courses: Course[] = [
-    {
-      title: 'Introduction to JavaScript',
-      description: 'Learn the basics of JavaScript',
-    },
-    {
-        title: 'Introduction to Go',
-        description: 'Learn the basics of Golang',
-      },
-      {
-        title: 'Introduction to JavaScript',
-        description: 'Learn the basics of JavaScript',
-      },
-      {
-          title: 'Introduction to Go',
-          description: 'Learn the basics of Golang',
-        },
-        {
-            title: 'Introduction to JavaScript',
-            description: 'Learn the basics of JavaScript',
-          },
-          {
-              title: 'Introduction to Go',
-              description: 'Learn the basics of Golang',
-            },
-    // Add more courses as needed
-  ];
 
 const Courses: React.FC = () => {
-    const handleNewCourse = () => {
-        // Handling stub for creating a new course
-        console.log('Creating a new course...');
-    };
+  const [courses, setCourses] = useState<Course[]>([]);
 
-    return (
-        <div>
-            <h1>Courses</h1>
-            <CourseList courses={courses}/>
-            <br />
-            <button onClick={handleNewCourse}>New Course</button>
-        </div>
-    );
+  const fetchCourses = async () => {
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/course`)
+      .then((response) => response.json())
+      .then((data) => setCourses(data))
+      .catch((error) => console.error('Error:', error));
+  };
+
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  return (
+    <div>
+      <h1>Courses</h1>
+      { courses.length === 0 && (<p>No Courses Yet</p>) }
+      { courses.length>0 && (<CourseList courses={courses}/>) }
+      <br />
+      <NewDialog />
+    </div>
+  );
 };
 
 export default Courses;

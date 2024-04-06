@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Stepper, Step, StepLabel, Button, TextField, Box, Typography } from '@mui/material';
 // import { ColorPicker } from '@mui/x-date-pickers/ColorPicker'; // Adjust based on the color picker you choose
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { CourseData } from '../types';
 import ColorPicker from '../components/color_picker';
@@ -11,7 +12,7 @@ const steps = ['Course Details', 'Additional Information', 'Assets'];
 export default function CourseCreateEditForm() {
   const [activeStep, setActiveStep] = useState(0);
   const [courseData, setCourseData] = useState<CourseData>({
-    title: '',
+    name: '',
     description: '',
     subdomain: '',
     icon: undefined,
@@ -19,6 +20,9 @@ export default function CourseCreateEditForm() {
     primaryColor: '#ffffff',
     secondaryColor: '#000000'
   });
+  const location = useLocation();
+  const subdomain = location.pathname.split('/').pop();
+  const navigate = useNavigate();
 
   const handleNext = () => {
     setActiveStep((prevActiveStep) => prevActiveStep + 1);
@@ -42,6 +46,21 @@ const handleIconChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       });
     }
   };
+
+  useEffect(() => {
+    if (subdomain) {
+      fetch(`${import.meta.env.VITE_BACKEND_URL}/course/${subdomain}`)
+        .then((response) => response.json())
+        .then((data) => setCourseData({
+          ...courseData,
+          ...data
+        }))
+        .catch((error) => console.error('Error:', error));
+    }else {
+      navigate('/courses');
+    }
+  }, [])
+
   
 
 const StepContent = ({ stepIndex }: { stepIndex: number }) => {
@@ -53,9 +72,10 @@ const StepContent = ({ stepIndex }: { stepIndex: number }) => {
               fullWidth
               label="Title"
               name="title"
-              value={courseData.title}
+              value={courseData.name}
               onChange={handleFieldChange}
               margin="normal"
+              disabled={true}
             />
             <TextField
               fullWidth
@@ -64,6 +84,7 @@ const StepContent = ({ stepIndex }: { stepIndex: number }) => {
               value={courseData.description}
               onChange={handleFieldChange}
               margin="normal"
+              disabled={true}
             />
             <TextField
               fullWidth
@@ -72,6 +93,7 @@ const StepContent = ({ stepIndex }: { stepIndex: number }) => {
               value={courseData.subdomain}
               onChange={handleFieldChange}
               margin="normal"
+              disabled={true}
             />
           </Box>
         );
@@ -109,7 +131,6 @@ const StepContent = ({ stepIndex }: { stepIndex: number }) => {
                 label="Secondary Color"
                 color={courseData.secondaryColor}
                 onChange={(color) => setCourseData({ ...courseData, secondaryColor: color })} />
-            {/* Implement ColorPicker for primaryColor and secondaryColor */}
         </Box>
         );
       default:
@@ -118,7 +139,7 @@ const StepContent = ({ stepIndex }: { stepIndex: number }) => {
   };
 
   return (
-    <Box sx={{ width: '100%' }}>
+    <Box sx={{ width: '80vw' }} p={5} bgcolor={'white'} borderRadius={2}>
       <Stepper activeStep={activeStep} alternativeLabel>
         {steps.map((label) => (
           <Step key={label}>
@@ -137,7 +158,6 @@ const StepContent = ({ stepIndex }: { stepIndex: number }) => {
             <StepContent stepIndex={activeStep} />
             <Box sx={{ display: 'flex', flexDirection: 'row', pt: 2 }}>
               <Button
-                color="inherit"
                 disabled={activeStep === 0}
                 onClick={handleBack}
                 sx={{ mr: 1 }}

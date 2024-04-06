@@ -42,7 +42,7 @@ function Navbar() {
           {
             Cookies.get("session_id") && (
               <Box sx={{ marginLeft: 'auto' }}> {/* Align "Log Out" link to the right 📏➡️ */}
-              <StyledLink onClick={handleLogoout} theme={theme}>Log Out</StyledLink> {/* Log Out link 🔐🚪 */}
+              <StyledLink onClick={handleLogoout} to="/" theme={theme}>Log Out</StyledLink> {/* Log Out link 🔐🚪 */}
             </Box>
             )
           }

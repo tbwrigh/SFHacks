@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 import os
 import random
 
-from models.subdomains import Subdomain
+from models.course import Course
 from models.user import User
 
 @asynccontextmanager
@@ -33,8 +33,10 @@ app.add_middleware(
 
 security = HTTPBasic()
 
-class SubdomainBody(BaseModel):
+class CourseBody(BaseModel):
     name: str
+    description: str
+    subdomain: str
 
 @app.get("/")
 def read_root():
@@ -100,3 +102,39 @@ def logout(request: Request):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authenticated")
     app.state.cache.delete(f"session-{session_id}")
     return {"message": "Logged out successfully"}
+
+@app.get("/course")
+def get_courses():
+    with Session(app.state.db) as session:
+        courses = session.execute(select(Course)).scalars().all()
+        return courses
+    
+@app.post("/course")
+def create_course(courseBody: CourseBody, user: User = Depends(get_authenticated_user_from_session_id)):
+    with Session(app.state.db) as session:
+        course = Course(name=courseBody.name, description=courseBody.description, subdomain=courseBody.subdomain, owner_id=user.id)
+        session.add(course)
+        session.commit()
+        return course
+
+@app.get("/course/{subdomain}")
+def get_course(subdomain: str):
+    with Session(app.state.db) as session:
+        course_query = select(Course).where(Course.subdomain == subdomain)
+        course = session.execute(course_query).scalar()
+        if course is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+        return course
+
+@app.delete("/course/{subdomain}")
+def delete_course(subdomain: str, user: User = Depends(get_authenticated_user_from_session_id)):
+    with Session(app.state.db) as session:
+        course_query = select(Course).where(Course.subdomain == subdomain)
+        course = session.execute(course_query).scalar()
+        if course is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+        if course.owner_id != user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+        session.delete(course)
+        session.commit()
+        return {"message": "Course deleted successfully"}

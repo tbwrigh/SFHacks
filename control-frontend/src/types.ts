@@ -1,10 +1,13 @@
 export interface Course {
-    title: string;
+    id: number;
+    name: string;
     description: string;
+    subdomain: string;
+    owner_id: number;
 }
 
 export interface CourseData {
-    title: string;
+    name: string;
     description: string;
     subdomain: string;
     icon: File | undefined; // Allow the icon to be a File or undefined

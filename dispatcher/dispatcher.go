@@ -50,7 +50,7 @@ func main() {
 }
 
 func getSubdomains() []string {
-	rows, err := conn.Query("SELECT subdomain FROM subdomains")
+	rows, err := conn.Query("SELECT subdomain FROM courses")
 	if err != nil {
 		panic(err)
 	}

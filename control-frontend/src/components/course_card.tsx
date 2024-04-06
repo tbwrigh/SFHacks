@@ -26,13 +26,13 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, onClick }) => (
           flex: '1 0 auto', // Allow content to expand and fill available space
       }}>
         <Typography gutterBottom variant="h5" component="div" noWrap>
-          {course.title}
+          {course.name}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{
             display: '-webkit-box',
             overflow: 'hidden',
             WebkitBoxOrient: 'vertical',
-            WebkitLineClamp: 2, // Limit text to 2 lines
+            WebkitLineClamp: 5, // Limit text to 2 lines
           }}>
           {course.description}
         </Typography>
