@@ -37,7 +37,8 @@ function Modules() {
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
     const [openResults, setOpenResults] = useState(false);
 
-    const subdomain = window.location.hostname.split('.')[0];
+    const url_search_params = new URLSearchParams((new URL(window.location.href)).search);
+    const subdomain = url_search_params.has("subdomain") ? url_search_params.get("subdomain") : window.location.hostname.split('.')[0];
 
     useEffect(() => {
     fetch(`${import.meta.env.VITE_BACKEND_URL}/course/${subdomain}`)
