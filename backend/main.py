@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from google.cloud import storage
+from google.oauth2 import service_account
 from pydantic import BaseModel
 from pymemcache.client import base
 from sqlalchemy import create_engine, select
@@ -12,6 +13,7 @@ from sqlalchemy.orm import Session
 import os
 import random
 import io
+import json
 
 from models.course import Course
 from models.user import User
@@ -24,7 +26,8 @@ async def lifespan(app: FastAPI):
     app.state.db = create_engine(os.getenv("DATABASE_URL"))
     app.state.cache = base.Client((os.getenv("MEMCACHE_HOST"), int(os.getenv("MEMCACHE_PORT"))))
     app.state.session_count = 0
-    app.state.gcs_client = storage.Client.from_service_account_json("gcs.json")
+    gc_auth_json = json.loads(os.getenv("GC_AUTH_JSON"))
+    app.state.gcs_client = storage.Client(credentials=service_account.Credentials.from_service_account_info(gc_auth_json))
     yield
     app.state.db.dispose()
 
