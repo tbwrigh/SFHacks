@@ -20,3 +20,12 @@ export interface Material {
     position: number;
     module_id: number;
 }
+
+export interface Question {
+    id: number;
+    question: string;
+    answer: string;
+    incorrect: string;
+    position: number;
+    module_id: number;
+}

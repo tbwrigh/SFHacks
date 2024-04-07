@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { Course, Module, Material } from "../types";
+import { Course, Module, Material, Question } from "../types";
 
 import { v4 as uuidv4 } from 'uuid';
 
@@ -12,6 +12,9 @@ import { DialogActions } from "@mui/material";
 import { Button } from "@mui/material";
 import { CircularProgress } from "@mui/material";
 
+import { Select } from "@mui/material";
+import { MenuItem }  from "@mui/material";
+
 import download from 'downloadjs';
 
 
@@ -20,12 +23,19 @@ function Modules() {
     const [courseData, setCourseData] = useState<Course | null>(null);
     const [modules, setModules] = useState<Module[]>([]);
     const [materials, setMaterials] = useState<Material[]>([]);
+    const [questions, setQuestions] = useState<Question[]>([]);
 
     const [blob, setBlob] = useState<Blob | null>(null);
     const [filename, setFilename] = useState<string | null>(null);
     const [pdfString, setPdfString] = useState('');
 
     const [openPreview, setOpenPreview] = useState(false);
+
+    const [openQuestion, setOpenQuestion] = useState(false);
+    const [questionId, setQuestionId] = useState<number | null>(null);
+    const [correct, setCorrect] = useState<boolean | null>(null);
+    const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+    const [openResults, setOpenResults] = useState(false);
 
     const subdomain = window.location.hostname.split('.')[0];
 
@@ -50,6 +60,13 @@ function Modules() {
     }, []);
 
     useEffect(() => {
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/course/${subdomain}/question`)
+        .then((response) => response.json())
+        .then((data) => setQuestions(data))
+        .catch((error) => console.error('Error:', error));
+    }, [])
+
+    useEffect(() => {
         (async () => {
             let base64String = "" as string | ArrayBuffer | null;
             if(!blob) {
@@ -66,27 +83,32 @@ function Modules() {
         })();
     }, [blob])
 
-    const handleClick = (material_id: number) => {
-        setOpenPreview(true);
-        fetch(`${import.meta.env.VITE_BACKEND_URL}/course/${subdomain}/material/${material_id}`)
-        .then( res => res.blob() )
-        .then( blob => {
-            fetch(`${import.meta.env.VITE_BACKEND_URL}/course/${subdomain}/material/`)
-            .then(response => response.json())
-            .then(json => {
-                let filename = "";
-                for (let i = 0; i < json.length; i++) {
-                    if (json[i].id === material_id) {
-                        filename = json[i].filename;
-                        break;
+    const handleClick = (material_id: number, type: string) => {
+        if (type === "question") {
+            setOpenQuestion(true);
+            setQuestionId(material_id);
+        }else {
+            setOpenPreview(true);
+            fetch(`${import.meta.env.VITE_BACKEND_URL}/course/${subdomain}/material/${material_id}`)
+            .then( res => res.blob() )
+            .then( blob => {
+                fetch(`${import.meta.env.VITE_BACKEND_URL}/course/${subdomain}/material/`)
+                .then(response => response.json())
+                .then(json => {
+                    let filename = "";
+                    for (let i = 0; i < json.length; i++) {
+                        if (json[i].id === material_id) {
+                            filename = json[i].filename;
+                            break;
+                        }
                     }
-                }
-                // download(blob, filename);
-                setBlob(blob);
-                setFilename(filename.toLowerCase());
+                    // download(blob, filename);
+                    setBlob(blob);
+                    setFilename(filename.toLowerCase());
+                })
             })
-        })
-        .catch((error) => console.error('Error:', error));
+            .catch((error) => console.error('Error:', error));    
+        }
     }
 
     const handleClose = () => {
@@ -101,6 +123,15 @@ function Modules() {
         }
     }
 
+
+    function shuffleArray<T>(array: T[]): T[] {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]]; // ES6 destructuring swap
+        }
+        return array;
+      }
+
     return (
         <div style={{width: '100%', height: '100%'  }}> 
             <h1>{courseData?.name}</h1>
@@ -109,8 +140,8 @@ function Modules() {
                   modules.sort((a, b) => a.position - b.position).map((module) => (
                     <TreeItem itemId={uuidv4()} label={module.name} key={uuidv4()} >
                       {
-                        materials.filter((material) => material.module_id === module.id).sort((a,b) => a.position - b.position).map((material) => (
-                          <TreeItem itemId={uuidv4()} label={material.name} key={uuidv4()} onClick={() => handleClick(material.id)} />
+                         (materials.filter((material) => material.module_id === module.id) as (Material | Question)[]).concat(questions.filter((question) => question.module_id === module.id) as (Material | Question)[]).sort((a,b) => a.position - b.position).map((material) => (
+                          <TreeItem itemId={uuidv4()} label={"name" in material ? material.name : "Question"} key={uuidv4()} onClick={() => handleClick(material.id, "name" in material ? "material" : "question")} />
                         ))
                       }
                     </TreeItem>
@@ -191,6 +222,35 @@ function Modules() {
                     }
                     <Button onClick={handleClose}>Done</Button>
                 </DialogActions>    
+            </Dialog>
+
+            <Dialog open={openQuestion}>
+                <h2>Question</h2>
+                <p>{questions.find((question) => question.id === questionId)?.question}</p>
+
+                <Select
+                    onChange={(e) => setSelectedAnswer(e.target.value as string)}
+                >
+                    {
+                        shuffleArray([questions.find((question) => question.id === questionId)?.answer, ...(questions.find((question) => question.id === questionId)?.incorrect.split(",") || [])]).map((answer, index) => (
+                            <MenuItem key={index} value={answer}>{answer}</MenuItem>
+                        ))
+
+                    }
+                </Select>
+
+                <Button onClick={() => {
+                    setOpenQuestion(false);
+                    setCorrect(questions.find((question) => question.id === questionId)?.answer === selectedAnswer);
+                    setSelectedAnswer(null);
+                    setQuestionId(null);
+                    setOpenResults(true);
+                }}>Submit</Button>
+            </Dialog>
+
+            <Dialog open={openResults}>
+                <h2>{correct ? "Correct" : "Incorrect"}</h2>
+                <Button onClick={() => setOpenResults(false)}>Close</Button>
             </Dialog>
         </div>
     );
