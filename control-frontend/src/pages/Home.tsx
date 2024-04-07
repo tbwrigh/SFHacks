@@ -51,7 +51,8 @@ function HomePage() {
         setEmail('');
         setPassword('');
         response.json().then(data => {
-          Cookies.set('session_id', data.session_id);
+          document.cookie = `session_id=${data.session_id}; SameSite=None;`;
+          // Cookies.set('session_id', data.session_id);
           navigate('/courses');
         })
       } else {
