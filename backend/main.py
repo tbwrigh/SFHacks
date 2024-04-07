@@ -81,10 +81,12 @@ def create_session(user_id: int):
 @app.post("/login")
 def login(user: User = Depends(authenticate_user)):
     session_id = create_session(user.id)
+    print(f"NEW SESSION ID: {session_id}")
     return {"message": "Logged in successfully", "session_id": session_id}
 
 def get_authenticated_user_from_session_id(request: Request):
     session_id = request.cookies.get("session_id")
+    print("RECIEVED SESSION ID: ", session_id)
     if session_id is None or app.state.cache.get(f"session-{session_id}") is None:
         raise HTTPException(
             status_code=401,
