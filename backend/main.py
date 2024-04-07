@@ -35,7 +35,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://sfhacks-control-frontend-2tie6dnyiq-wm.a.run.app", "https://sfhacks-instance-frontend-2tie6dnyiq-wm.a.run.app", "http://localhost:8080", "http://localhost:8081", "http://localhost:8082"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
