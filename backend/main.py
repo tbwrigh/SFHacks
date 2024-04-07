@@ -17,6 +17,7 @@ from models.course import Course
 from models.user import User
 from models.module import Module
 from models.material import Material
+from models.question import Question
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -276,3 +277,62 @@ def delete_material(subdomain: str, material_id: int, user: User = Depends(get_a
         session.delete(material)
         session.commit()
         return {"message": "Material deleted successfully"}
+
+@app.post("/course/{subdomain}/module/{module_id}/question")
+def create_question(subdomain: str, module_id: int, question: str = Body(...), answer: str = Body(...), incorrect: str = Body(...), position: int = Body(...), user: User = Depends(get_authenticated_user_from_session_id)):
+    with Session(app.state.db) as session:
+        course_query = select(Course).where(Course.subdomain == subdomain)
+        course = session.execute(course_query).scalar()
+        if course is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+        if course.owner_id != user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+        module_query = select(Module).where(Module.id == module_id)
+        module = session.execute(module_query).scalar()
+        if module is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found")
+        question = Question(question=question, answer=answer, incorrect=incorrect, position=position, module_id=module_id, course_id=course.id)
+        session.add(question)
+        session.commit()
+        return question
+    
+@app.get("/course/{subdomain}/question")
+def get_questions(subdomain: str):
+    with Session(app.state.db) as session:
+        course_query = select(Course).where(Course.subdomain == subdomain)
+        course = session.execute(course_query).scalar()
+        if course is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+        question_query = select(Question).where(Question.course_id == course.id)
+        questions = session.execute(question_query).scalars().all()
+        return questions
+
+@app.get("/course/{subdomain}/question/{question_id}")
+def get_question(subdomain: str, question_id: int):
+    with Session(app.state.db) as session:
+        course_query = select(Course).where(Course.subdomain == subdomain)
+        course = session.execute(course_query).scalar()
+        if course is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+        question_query = select(Question).where(Question.id == question_id)
+        question = session.execute(question_query).scalar()
+        if question is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Question not found")
+        return question
+
+@app.delete("/course/{subdomain}/question/{question_id}")
+def delete_question(subdomain: str, question_id: int, user: User = Depends(get_authenticated_user_from_session_id)):
+    with Session(app.state.db) as session:
+        course_query = select(Course).where(Course.subdomain == subdomain)
+        course = session.execute(course_query).scalar()
+        if course is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+        if course.owner_id != user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+        question_query = select(Question).where(Question.id == question_id and Question.course_id == course.id)
+        question = session.execute(question_query).scalar()
+        if question is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Question not found")
+        session.delete(question)
+        session.commit()
+        return {"message": "Question deleted successfully"}

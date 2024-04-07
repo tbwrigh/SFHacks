@@ -7,7 +7,7 @@ import { TreeItem } from '@mui/x-tree-view/TreeItem';
 
 import SpeedDialTooltipOpen from '../components/add_button';
 
-import { CourseData, Material, Module } from '../types';
+import { CourseData, Material, Module, Question } from '../types';
 import ColorPicker from '../components/color_picker';
 
 import { v4 as uuidv4 } from 'uuid';
@@ -27,6 +27,8 @@ export default function CourseCreateEditForm() {
   });
   const [modules, setModules] = useState<Module[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
+
+  const [questions, setQuestions] = useState<Question[]>([]); // Add question state
 
   const location = useLocation();
   const subdomain = location.pathname.split('/').pop();
@@ -69,9 +71,17 @@ const handleIconChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       .catch((error) => console.error('Error:', error));
   }
 
+  const fetchQuestions = () => {
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/course/${subdomain}/question`)
+          .then((response) => response.json())
+          .then((data) => setQuestions(data))
+          .catch((error) => console.error('Error:', error));
+  }
+
   const updates = () => {
     fetchModules();
     fetchMaterials();
+    fetchQuestions();
   }
 
   useEffect(() => {
@@ -134,8 +144,8 @@ const StepContent = ({ stepIndex }: { stepIndex: number }) => {
                   modules.sort((a, b) => a.position - b.position).map((module) => (
                     <TreeItem itemId={uuidv4()} label={module.name} key={uuidv4()} sx={{ color: '#000' }}>
                       {
-                        materials.filter((material) => material.module_id === module.id).sort((a,b) => a.position - b.position).map((material) => (
-                          <TreeItem itemId={uuidv4()} label={material.name} key={uuidv4()} sx={{ color: '#000' }} />
+                        ((materials.filter((material) => material.module_id === module.id) as (Material | Question)[]).concat(questions.filter((question) => question.module_id === module.id) as unknown as (Material | Question)[])).sort((a,b) => a.position - b.position).map((material) => (
+                          <TreeItem itemId={uuidv4()} label={'name' in material ? material.name : material.question} key={uuidv4()} sx={{ color: '#000' }} />
                         ))
                       }
                     </TreeItem>

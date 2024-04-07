@@ -4,7 +4,7 @@ import SpeedDialIcon from '@mui/material/SpeedDialIcon';
 import SpeedDialAction from '@mui/material/SpeedDialAction';
 import AddIcon from '@mui/icons-material/Add';
 import NoteAddIcon from '@mui/icons-material/NoteAdd';
-import { Edit } from '@mui/icons-material';
+import { Edit, QuestionMark } from '@mui/icons-material';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -15,7 +15,7 @@ import { TextField } from '@mui/material';
 import { Select, MenuItem } from '@mui/material';
 import { v4 as uuidv4 } from 'uuid';
 
-import { Module, Material } from '../types';
+import { Module, Material, Question } from '../types';
 
 import download from 'downloadjs';
 
@@ -40,10 +40,19 @@ interface AddMaterialData {
     file: File;
 }
 
+interface AddQuestionData {
+    question: string;
+    answer: string;
+    incorrect: string;
+    position: number;
+    module_id: number;
+}
+
 function SpeedDialTooltipOpen(props: SpeedDialActionProps) {
     const [openModuleDialog, setOpenModuleDialog] = useState(false);
     const [openMaterialDialog, setOpenMaterialDialog] = useState(false);
     const [openEditDialog, setOpenEditDialog] = useState(false);
+    const [openQuestionsDialog, setOpenQuestionsDialog] = useState(false);
 
     const [editType, setEditType] = useState(''); // ['module', 'material'
     const [editId, setEditId] = useState(0); // [module_id, material_id
@@ -62,8 +71,17 @@ function SpeedDialTooltipOpen(props: SpeedDialActionProps) {
         file: new File([], '')
     });
 
+    const [addQuestionData, setAddQuestionData] = useState<AddQuestionData>({
+        question: '',
+        answer: '',
+        incorrect: '',
+        position: 0,
+        module_id: 0
+    });
+
     const [modules, setModules] = useState<Module[]>([]); // Add module state
     const [materials, setMaterials] = useState<Material[]>([]); // Add material state
+    const [questions, setQuestions] = useState<Question[]>([]); // Add question state
 
     useEffect(() => {
         fetch(`${import.meta.env.VITE_BACKEND_URL}/course/${props.subdomain}/module`)
@@ -77,9 +95,22 @@ function SpeedDialTooltipOpen(props: SpeedDialActionProps) {
             .then((data) => setMaterials(data))
     }, [])
 
+    useEffect(() => {
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/course/${props.subdomain}/question`)
+            .then((response) => response.json())
+            .then((data) => setQuestions(data))
+    }, [])
+
     const updateAddModuleData = (key: string, value: string | number) => {
         setAddModuleData({
             ...addModuleData,
+            [key]: value
+        });
+    }
+
+    const updateQuestionData = (key: string, value: string | number) => {
+        setAddQuestionData({
+            ...addQuestionData,
             [key]: value
         });
     }
@@ -98,6 +129,8 @@ function SpeedDialTooltipOpen(props: SpeedDialActionProps) {
         setOpenMaterialDialog(true);
       } else if (dialogType === 'edit') {
         setOpenEditDialog(true);
+      } else if (dialogType === 'questions') {
+        setOpenQuestionsDialog(true)
       }
     };
   
@@ -152,6 +185,16 @@ function SpeedDialTooltipOpen(props: SpeedDialActionProps) {
                 setOpenEditDialog(false);
             })
             .catch((error) => console.error('Error:', error));
+        }else if (editType === "question") {
+            fetch(`${import.meta.env.VITE_BACKEND_URL}/course/${props.subdomain}/question/${editId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            })
+            .then(() => {
+                props.onModalClose();
+                setOpenEditDialog(false);
+            })
+            .catch((error) => console.error('Error:', error));
         } else {
             fetch(`${import.meta.env.VITE_BACKEND_URL}/course/${props.subdomain}/material/${editId}`, {
                 method: 'DELETE',
@@ -184,10 +227,45 @@ function SpeedDialTooltipOpen(props: SpeedDialActionProps) {
         })
         .catch((error) => console.error('Error:', error));
     }
+
+    const handleQuestionCancel = () => {
+        setOpenQuestionsDialog(false);
+        setAddQuestionData({
+            question: '',
+            answer: '',
+            incorrect: '',
+            position: 0,
+            module_id: 0
+        });
+    }
+
+    const handleQuestionDone = () => {
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/course/${props.subdomain}/module/${addQuestionData.module_id}/question`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify(addQuestionData)
+        })
+        .then(() => {
+            props.onModalClose();
+            setOpenQuestionsDialog(false);
+            setAddQuestionData({
+                question: '',
+                answer: '',
+                incorrect: '',
+                position: 0,
+                module_id: 0
+            });
+        })
+        .catch((error) => console.error('Error:', error));
+    }
   
     const actions = [
       { icon: <NoteAddIcon />, name: 'Add Module', onClick: () => handleClickOpen('module') },
       { icon: <AddIcon />, name: 'Add Material', onClick: () => handleClickOpen('material') },
+      { icon: <QuestionMark />, name: 'Add Questions', onClick: () => handleClickOpen('questions')},
       { icon: <Edit />, name: 'Edit', onClick: () => handleClickOpen('edit')},
     ];
   
@@ -335,6 +413,7 @@ function SpeedDialTooltipOpen(props: SpeedDialActionProps) {
                         onChange={(e) => setEditType(e.target.value as string)}>
                     <MenuItem value="module" selected={editType == "module"}>Module</MenuItem>
                     <MenuItem value="material" selected={editType=="material"}>Material</MenuItem>
+                    <MenuItem value="question" selected={editType=="question"}>Question</MenuItem>
                 </Select>
                 <Select fullWidth onChange={(e) => setEditId(parseInt(e.target.value as string))}>
                     {
@@ -342,7 +421,15 @@ function SpeedDialTooltipOpen(props: SpeedDialActionProps) {
                             modules.map((module) => (
                                 <MenuItem value={module.id} key={uuidv4()}>{module.name}</MenuItem>
                             ))
-                        ) : (
+                        ) 
+                        : 
+                        editType === 'question' ? (
+                            questions.map((question) => (
+                                <MenuItem value={question.id} key={uuidv4()}>{question.question}</MenuItem>
+                            ))
+                        ) 
+                        :
+                        (
                             materials.map((material) => (
                                 <MenuItem value={material.id} key={uuidv4()}>{material.name}</MenuItem>
                             ))
@@ -352,7 +439,7 @@ function SpeedDialTooltipOpen(props: SpeedDialActionProps) {
             </DialogContent>
             <DialogActions>
                 {
-                    (editType == "module" || editType == "material") && (
+                    (editType == "module" || editType == "material" || editType == "question") && (
                         <Button onClick={handleDelete}>Delete</Button>
                     )
                 }
@@ -362,6 +449,73 @@ function SpeedDialTooltipOpen(props: SpeedDialActionProps) {
                     )
                 }
                 <Button onClick={handleClose}>Done</Button>
+            </DialogActions>
+        </Dialog>
+
+        <Dialog open={openQuestionsDialog}>
+            <DialogTitle>{"New Question"}</DialogTitle>
+            <DialogContent>
+                
+                <TextField
+                    autoFocus
+                    margin="dense"
+                    id="question"
+                    label="Question"
+                    type="text"
+                    fullWidth
+                    value={addQuestionData.question}
+                    onChange={(e) => updateQuestionData('question', e.target.value)}
+                />
+
+                <TextField
+                    autoFocus
+                    margin="dense"
+                    id="answer"
+                    label="Answer"
+                    type="text"
+                    fullWidth
+                    value={addQuestionData.answer}
+                    onChange={(e) => updateQuestionData('answer', e.target.value)}
+                />
+                
+                <TextField
+                    autoFocus
+                    margin="dense"
+                    id="incorrect"
+                    label="Incorrect (Comma Separated)"
+                    type="text"
+                    fullWidth
+                    value={addQuestionData.incorrect}
+                    onChange={(e) => updateQuestionData('incorrect', e.target.value)}
+                />
+
+                <TextField
+                    autoFocus
+                    margin="dense"
+                    id="position"
+                    label="Position"
+                    type="number"
+                    fullWidth
+                    value={addQuestionData.position}
+                    onChange={(e) => updateQuestionData('position', parseInt(e.target.value))}
+                />
+
+                <Select
+                    id="module-select"
+                    fullWidth
+                    onChange={(e) => updateQuestionData('module_id', parseInt(e.target.value as string))}
+                >
+                    {
+                        modules.map((module) => (
+                            <MenuItem value={module.id} key={uuidv4()}>{module.name}</MenuItem>
+                        ))
+                    }
+                </Select>
+
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={handleQuestionCancel}>Cancel</Button>
+                <Button onClick={handleQuestionDone}>Done</Button>
             </DialogActions>
         </Dialog>
       </>

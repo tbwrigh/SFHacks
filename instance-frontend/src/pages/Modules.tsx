@@ -15,6 +15,7 @@ import { CircularProgress } from "@mui/material";
 import download from 'downloadjs';
 
 
+
 function Modules() {
     const [courseData, setCourseData] = useState<Course | null>(null);
     const [modules, setModules] = useState<Module[]>([]);
@@ -22,6 +23,7 @@ function Modules() {
 
     const [blob, setBlob] = useState<Blob | null>(null);
     const [filename, setFilename] = useState<string | null>(null);
+    const [pdfString, setPdfString] = useState('');
 
     const [openPreview, setOpenPreview] = useState(false);
 
@@ -46,6 +48,23 @@ function Modules() {
         .then((data) => setMaterials(data))
         .catch((error) => console.error('Error:', error));
     }, []);
+
+    useEffect(() => {
+        (async () => {
+            let base64String = "" as string | ArrayBuffer | null;
+            if(!blob) {
+                console.log('no blob');
+                return; 
+            }
+            console.log('blob');
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = () => {
+                base64String = reader.result; 
+                setPdfString((base64String as string)?.substring((base64String as string)?.indexOf(',') + 1))    
+            }
+        })();
+    }, [blob])
 
     const handleClick = (material_id: number) => {
         setOpenPreview(true);
@@ -83,7 +102,7 @@ function Modules() {
     }
 
     return (
-        <>
+        <div style={{width: '100%', height: '100%'  }}> 
             <h1>{courseData?.name}</h1>
             <SimpleTreeView>
                 {
@@ -99,9 +118,25 @@ function Modules() {
                 }
             </SimpleTreeView>
 
-            <Dialog open={openPreview} >
+            <Dialog open={openPreview} 
+            PaperProps={{
+                style: {
+                    maxWidth: 'none',
+                    width: '80%', // or any custom width
+                    height: '80%', // or any custom height
+                    margin: '0',
+                
+                },
+            }}
+            fullWidth
+            >
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
 
+                <div style={{ width: '80%'}}>
                 <h2>Preview {filename && (`of ${filename}`)}</h2>
+                </div>
+
+                </div>
 
                 {
                     (blob && filename) ? 
@@ -117,11 +152,21 @@ function Modules() {
                                 <source src={URL.createObjectURL(blob)} type="audio/mp3" />
                             </audio>
                         )
-                        // :
-                        // filename.endsWith('.pdf') ? 
-                        // (
-                        //     <iframe src={URL.createObjectURL(blob)} style={{width: '100%', height: '100%'}}></iframe>
-                        // )
+                        :
+                        filename.endsWith('.pdf') ? 
+                        
+                            
+                        pdfString ? (
+                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                            <div style={{ padding: '20px', width: '90%', height: '100%' }}>
+                            <embed src={`data:application/pdf;base64,${pdfString}#toolbar=0`} type="application/pdf" width="100%" height="100%" />
+                            </div>
+                            </div>
+
+                        ) : (
+                            <CircularProgress />
+                        )
+                                    
                         : 
                         (
                         filename.endsWith('.png') || filename.endsWith('.jpg') 
@@ -147,7 +192,7 @@ function Modules() {
                     <Button onClick={handleClose}>Done</Button>
                 </DialogActions>    
             </Dialog>
-        </>
+        </div>
     );
 }
 
